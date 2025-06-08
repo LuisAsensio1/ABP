@@ -14,7 +14,7 @@ from SRC.usuarios.usuarios import (
     obtener_rol,
     modificar_rol
 )
-
+from SRC.dispositivos.grabaciones import grabar_manual, ver_historial_grabaciones
 
 def mostrar_datos_usuario(email):
     print(f"\n📧 Email: {email}")
@@ -27,7 +27,9 @@ def menu_usuario(email):
         print("1. Ver mis datos")
         print("2. Configurar automatización")
         print("3. Ver dispositivos")
-        print("4. Cerrar sesión")
+        print("4. Grabar manualmente")
+        print("5. Ver historial grabaciones") 
+        print("6. Cerrar sesión")
         opcion = input("Seleccione una opción: ")
 
         if opcion == "1":
@@ -36,7 +38,15 @@ def menu_usuario(email):
             configurar_automatizacion(email)
         elif opcion == "3":
             mostrar_dispositivos(email)
-        elif opcion == "4":
+        elif opcion == "4":                    
+            dispositivo = input("Nombre del dispositivo: ").strip()
+            if dispositivo:
+                grabar_manual(email, dispositivo)
+            else:
+                print("❌ Nombre no puede estar vacío.")
+        elif opcion == "5":                     
+            ver_historial_grabaciones(email)
+        elif opcion == "6":
             print("\n👋 Sesión finalizada.")
             break
         else:
@@ -49,7 +59,8 @@ def menu_admin(email):
         print("1. Ver automatizaciones activas")
         print("2. Gestionar dispositivos")
         print("3. Modificar rol de usuario")
-        print("4. Cerrar sesión")
+        print("4. Ver todas las grabaciones") 
+        print("5. Cerrar sesión")
         opcion = input("Seleccione una opción: ")
 
         if opcion == "1":
@@ -78,7 +89,23 @@ def menu_admin(email):
             objetivo = input("Email del usuario a modificar: ")
             nuevo_rol = input("Nuevo rol (usuario/administrador): ")
             modificar_rol(objetivo, nuevo_rol, email)
-        elif opcion == "4":
+        elif opcion == "4":                     
+            usuario_objetivo = input("Email del usuario (Enter para todos): ").strip()
+            if usuario_objetivo:
+                ver_historial_grabaciones(usuario_objetivo)
+            else:
+                # Ver grabaciones de todos los usuarios
+                import json
+                import os
+                ruta_grab = os.path.join("data", "grabaciones.json")
+                if os.path.exists(ruta_grab):
+                    with open(ruta_grab, "r") as f:
+                        todas_grab = json.load(f)
+                    for email_usuario in todas_grab:
+                        ver_historial_grabaciones(email_usuario)
+                else:
+                    print("⚠️ No hay grabaciones en el sistema.")
+        elif opcion == "5":
             print("\n👋 Sesión finalizada.")
             break
         else:
