@@ -13,9 +13,8 @@ def mostrar_menu_dispositivos():
     print("3. Buscar dispositivo")
     print("4. Listar dispositivos")
     print("5. Activar modo ahorro de cámaras")
-    print("6. Desactivar modo ahorro de cámaras")
-    print("7. Modificar configuración de un dispositivo")
-    print("8. Volver al menú anterior")
+    print("6. Modificar configuración de un dispositivo")
+    print("7. Volver al menú anterior")
     return input("Seleccione una opción: ").strip()
 
 def menu_dispositivos(email_actual):
@@ -69,12 +68,9 @@ def menu_dispositivos(email_actual):
             dispositivos.activar_modo_ahorro(email_actual)
 
         elif opcion == "6":
-            dispositivos.desactivar_modo_ahorro(email_actual)
-
-        elif opcion == "7":
             dispositivos.modificar_configuracion_dispositivo(email_actual)
 
-        elif opcion == "8":
+        elif opcion == "7":
             print("👋 Volviendo al menú anterior...")
             return
 

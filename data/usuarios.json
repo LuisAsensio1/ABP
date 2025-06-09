@@ -8,5 +8,10 @@
         "nombre": "daniel-gonzalez",
         "contrase\u00f1a": "Dani1234.",
         "categoria": "administrador"
+    },
+    "iacc@gmail.com": {
+        "nombre": "sergio",
+        "contrase\u00f1a": "Iacc@1234",
+        "categoria": "usuario"
     }
 }
