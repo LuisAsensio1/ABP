@@ -1,4 +1,5 @@
 {
+<<<<<<< Updated upstream
     "matias@gmail.com": {
         "camara-cocina": {
             "tipo_de_dispositivo": "c\u00e1mara de seguridad",
@@ -36,6 +37,20 @@
             },
             "notificar_email": true,
             "modo_ahorro": false
+=======
+    "luis@gmail.com": {
+        "camara": {
+            "tipo": "c\u00e1mara de seguridad",
+            "modelo": "c100",
+            "estado": "encendido"
+        }
+    },
+    "giuli@gmail.com": {
+        "camara": {
+            "tipo": "c\u00e1mara de seguridad",
+            "modelo": "cam1",
+            "estado": "encendido"
+>>>>>>> Stashed changes
         }
     }
 }
