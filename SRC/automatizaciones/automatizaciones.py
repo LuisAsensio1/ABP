@@ -1,155 +1,82 @@
-import json
-import os
+from datetime import datetime
+from src.dispositivos.dispositivos import dispositivos
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RUTA = os.path.join(BASE_DIR, "data", "automatizaciones.json")
 automatizaciones = {}
 
-def cargar_automatizaciones():
-    global automatizaciones
-    if os.path.exists(RUTA):
-        with open(RUTA, "r") as f:
-            automatizaciones = json.load(f)
-    else:
-        automatizaciones = {}
-
-def guardar_automatizaciones():
-    os.makedirs(os.path.dirname(RUTA), exist_ok=True)
-    with open(RUTA, "w") as f:
-        json.dump(automatizaciones, f, indent=4)
-
-def modificar_automatizacion(email, dispositivo):
-    cargar_automatizaciones()
-
-    if email not in automatizaciones or dispositivo not in automatizaciones[email]:
-        print("❌ Automatización no encontrada.")
-        return
-
-    datos = automatizaciones[email][dispositivo]
-
+def pedir_hora(mensaje):
     while True:
-        print("\n--- CONFIGURACIÓN ACTUAL ---")
-        for k, v in datos.items():
-            print(f"{k}: {v}")
+        hora_str = input(mensaje)
+        try:
+            hora_obj = datetime.strptime(hora_str, "%H:%M")
+            return hora_obj.strftime("%H:%M")
+        except:
+            print("Debe ingresar un horario valido. HH:MM")
 
-        print("\n¿Qué desea modificar?")
-        print("1. Encendido/Apagado")
-        print("2. Modo de grabación (siempre/movimiento)")
-        print("3. Programar horario automático")
-        print("4. Notificaciones por movimiento")
-        print("5. Detección de movimiento")
-        print("6. Modo ahorro")
-        print("7. Activación nocturna silenciosa")
-        print("8. Volver al menú")
+def configurar_automatizacion(email_actual, dispositivo, nuevo_estado, hora_encendido, hora_apagado):
+    if email_actual not in automatizaciones:
+        automatizaciones[email_actual] = {}
+    
+    if dispositivo not in automatizaciones[email_actual]:
+        automatizaciones[email_actual][dispositivo] = {}
+    
+    automatizaciones[email_actual][dispositivo]["programacion_horaria"] = {
+        "estado": nuevo_estado,
+        "hora_encendido": hora_encendido,
+        "hora_apagado": hora_apagado
+    }
+    
+    print(f"✅ La automatización para el '{dispositivo}' fue configurada correctamente.")
 
-        opcion = input("Seleccione una opción: ")
+def ejecutar_automatizacion(email_actual):
+    if email_actual not in automatizaciones:
+        print("❌ Usuario no encontrado.")
+        return
+    # Conseguir la hora actual con datetime.now() y darle formato str con .strftime("%H:%M") 
+    ahora = datetime.now().strftime("%H:%M")  
 
-        if opcion == "1":
-            datos["encendido"] = not datos["encendido"]
+    for dispositivo, datos in automatizaciones[email_actual].items():
+        programado = datos.get("programacion_horaria")
+        if not programado or not programado.get("estado"):
+            continue  # De no encontrar una automatización activa, saltamos con continue
 
-        elif opcion == "2":
-            if not datos["encendido"]:
-                print("⚠️ El dispositivo debe estar encendido.")
-                continue
-            modo = input("Ingrese 'siempre' o 'movimiento': ").lower()
-            if modo in ["siempre", "movimiento"]:
-                datos["grabacion_modo"] = modo
+        # Verificar si la hora actual está dentro del rango de encendido
+        hora_encendido = programado["hora_encendido"]
+        hora_apagado = programado["hora_apagado"]
 
-        elif opcion == "3":
-            activar = input("¿Desea activar la programación horaria? (s/n): ").lower()
-            if activar == "s":
-                on = input("Horario de encendido (HH:MM): ")
-                off = input("Horario de apagado (HH:MM): ")
-                datos["programacion_horaria"] = {
-                    "activo": True,
-                    "encendido": on,
-                    "apagado": off
-                }
-            else:
-                datos["programacion_horaria"] = {"activo": False}
+        # Validación considerando cruce de medianoche
+        if hora_encendido <= hora_apagado:  # misma jornada
+            encendido = hora_encendido <= ahora <= hora_apagado
+        else:  # cruza medianoche
+            encendido = ahora >= hora_encendido or ahora <= hora_apagado
 
-        elif opcion == "4":
-            if not datos["encendido"] or not datos["deteccion_movimiento"]:
-                print("⚠️ Requiere detección de movimiento y estar encendido.")
-                continue
-            datos["notificaciones"] = not datos["notificaciones"]
+        datos["estado_disp"] = encendido
+        if email_actual in dispositivos and dispositivo in dispositivos[email_actual]:
+            dispositivos[email_actual][dispositivo]["estado_disp"] = encendido
 
-        elif opcion == "5":
-            if not datos["encendido"]:
-                print("⚠️ El dispositivo debe estar encendido.")
-                continue
-            datos["deteccion_movimiento"] = not datos["deteccion_movimiento"]
-
-        elif opcion == "6":
-            if not datos["deteccion_movimiento"] or not datos["notificaciones"]:
-                print("⚠️ Requiere detección y notificaciones activas.")
-                continue
-            datos["modo_ahorro"] = not datos["modo_ahorro"]
-
-        elif opcion == "7":
-            if not datos["encendido"] or datos.get("modo_ahorro"):
-                print("⚠️ No puede estar en modo ahorro y debe estar encendido.")
-                continue
-            datos["activacion_nocturna_silenciosa"] = not datos.get("activacion_nocturna_silenciosa", False)
-
-        elif opcion == "8":
-            break
-        else:
-            print("❌ Opción inválida.")
-
-    guardar_automatizaciones()
-    print("✅ Automatización actualizada correctamente.")
-
+        estado_texto = "encendido" if encendido else "apagado"
+        print(f"✅ Su dispositivo: {dispositivo} se encuentra {estado_texto} automáticamente a las {ahora}.")
 
 def mostrar_automatizaciones_activas():
-    cargar_automatizaciones()
     if not automatizaciones:
         print("⚠️ No hay automatizaciones configuradas.")
         return
 
-    for email, dispositivos in automatizaciones.items():
+    for email, dispositivos_usuario in automatizaciones.items():
+        automatizaciones_dispositivos_activas = {
+            nombre_disp: datos
+            for nombre_disp, datos in dispositivos_usuario.items()
+            if datos.get("programacion_horaria", {}).get("estado")
+        } # -> Aqui consultamos los dispositivos que tengan automatizaciones activas
+
+        if not automatizaciones_dispositivos_activas: 
+            continue  # -> Aquí saltamos los que no las tienen activas
+
         print(f"\n📧 Usuario: {email}")
-        for nombre_disp, config in dispositivos.items():
-            print(f"  📷 Dispositivo: {nombre_disp}")
-            for clave, valor in config.items():
-                print(f"    🔧 {clave}: {valor}")
-
-def configurar_automatizacion(email):
-    cargar_automatizaciones()
-
-    if email not in automatizaciones or not automatizaciones[email]:
-        print("⚠️ No hay automatizaciones disponibles para este usuario.")
-        return
-
-    dispositivos = list(automatizaciones[email].keys())
-    print("\n📋 Dispositivos con automatizaciones:")
-    for i, nombre in enumerate(dispositivos):
-        print(f"{i+1}. {nombre}")
-
-    try:
-        opcion = int(input("Seleccione un dispositivo por número: "))
-        if 1 <= opcion <= len(dispositivos):
-            dispositivo = dispositivos[opcion - 1]
-            modificar_automatizacion(email, dispositivo)
-        else:
-            print("❌ Opción fuera de rango.")
-    except ValueError:
-        print("❌ Entrada inválida.")
-
-
-def crear_automatizacion_por_defecto(email, nombre_disp):
-    cargar_automatizaciones()
-    if email not in automatizaciones:
-        automatizaciones[email] = {}
-
-    automatizaciones[email][nombre_disp] = {
-        "encendido": True,
-        "grabacion_modo": "movimiento",
-        "programacion_horaria": {"activo": False},
-        "notificaciones": True,
-        "deteccion_movimiento": True,
-        "modo_ahorro": False,
-        "activacion_nocturna_silenciosa": False
-    }
-
-    guardar_automatizaciones()
+        for nombre_disp, datos in automatizaciones_dispositivos_activas.items(): # Utilizamos el bucle for para imprimir los resultados
+            estado_actual = "encendido" if datos.get("estado") else "apagado"
+            programado = datos["programacion_horaria"]
+            print(f"Dispositivo: {nombre_disp} - Estado: {estado_actual}")
+            print(f"Automatización activa:")
+            print(f"Hora encendido: {programado['hora_encendido']}")
+            print(f"Hora apagado : {programado['hora_apagado']}")
+            

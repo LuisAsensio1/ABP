@@ -1,52 +1,20 @@
-from SRC.automatizaciones.automatizaciones import crear_automatizacion_por_defecto
+from src.usuarios.usuarios import usuarios
 
-import json
-import os
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RUTA = os.path.join(BASE_DIR, "data", "dispositivos.json")
 dispositivos = {}
 
-def cargar_dispositivos():
-    global dispositivos
-    if os.path.exists(RUTA):
-        with open(RUTA, "r") as f:
-            dispositivos = json.load(f)
-    else:
-        dispositivos = {}
-
-def guardar_dispositivos():
-    os.makedirs(os.path.dirname(RUTA), exist_ok=True)
-    with open(RUTA, "w") as f:
-        json.dump(dispositivos, f, indent=4)
-
-def listar_dispositivos_usuario(email):
-    if email in dispositivos:
-        print("\n📋 Dispositivos registrados:")
-        for nombre, info in dispositivos[email].items():
-            print(f"- {nombre} ({info['modelo']}) - Estado: {info['estado']}")
-    else:
-        print("⚠️ No hay dispositivos registrados.")
-
-#Se elimino registrar_dispositivos
-
-def mostrar_dispositivos(email):
-    cargar_dispositivos()
-    if email in dispositivos:
-        print(f"\n📋 Dispositivos para {email}:")
-        for nombre, datos in dispositivos[email].items():
-            print(f"- {nombre} ({datos['modelo']}) - Estado: {datos['estado']}")
-    else:
-        print("⚠️ No se encontraron dispositivos para este usuario.")
-
-
-def agregar_dispositivo(email):
-    cargar_dispositivos()
-    nombre = input("Nombre del dispositivo: ").strip()
+def agregar_dispositivo(email, nombre, tipo_disp, modelo):
+    if email not in usuarios:
+        print(f"❌ No se puede agregar dispositivo. El usuario '{email}' no existe.")
+        return
+    
+    if usuarios[email]["rol"] == "administrador":
+        print("❌ No se pueden agregar dispositivos a un administrador.")
+        return
+    
     if not nombre:
         print("❌ El nombre no puede estar vacío.")
         return
-    modelo = input("Modelo del dispositivo: ").strip()
+    
     if not modelo:
         print("❌ El modelo no puede estar vacío.")
         return
@@ -59,54 +27,59 @@ def agregar_dispositivo(email):
         return
 
     dispositivos[email][nombre] = {
-        "tipo": "cámara de seguridad",
+        "tipo": tipo_disp,
         "modelo": modelo,
-        "estado": "encendido"
+        "estado_disp": False 
     }
-    guardar_dispositivos()
-    crear_automatizacion_por_defecto(email, nombre)
+    
+    print(f"✅ Dispositivo '{nombre}' ({tipo_disp}) agregado correctamente.")
 
-    print(f"✅ Dispositivo '{nombre}' agregado correctamente.")
+def mostrar_todos_dispositivos():
+    if not dispositivos:
+        print("⚠️ No hay dispositivos registrados.")
+        return
 
+    for email, disp_usuario in dispositivos.items():
+        if disp_usuario: 
+            print(f"\n📧 Usuario: {email}")
+            for nombre, info in disp_usuario.items():
+                estado_actual = "encendido" if info['estado_disp'] else "apagado"
+                print(f"- {nombre} ({info['modelo']}) - Estado: {estado_actual}")
 
-def eliminar_dispositivo(email):
-    cargar_dispositivos()
+def mostrar_dispositivos_usuario(email_actual):
+    if email_actual in dispositivos:
+        print(f"\n📋 Dispositivos para {email_actual}:")
+        for nombre, datos in dispositivos[email_actual].items():
+            estado = "encendido" if datos['estado_disp'] else "apagado"
+            print(f"- {nombre} ({datos['modelo']}) - Estado: {estado}")
+    else:
+        print("⚠️ No se encontraron dispositivos para este usuario.")
+
+def eliminar_dispositivo(email, nombre):
     if email not in dispositivos or not dispositivos[email]:
         print("❌ El usuario no tiene dispositivos registrados.")
         return
-
-    print("📋 Dispositivos del usuario:")
-    for nombre in dispositivos[email]:
-        print(f"- {nombre}")
-    nombre = input("Ingrese el nombre del dispositivo a eliminar: ").strip()
-    if nombre in dispositivos[email]:
-        del dispositivos[email][nombre]
-        guardar_dispositivos()
-        print(f"✅ Dispositivo '{nombre}' eliminado.")
+    
+    dispositivo = dispositivos[email].pop(nombre, None)
+    
+    if dispositivo:
+        print(f"✅ Dispositivo '{nombre}' eliminado correctamente.")
     else:
         print("❌ Dispositivo no encontrado.")
 
-def modificar_dispositivo(email):
-    cargar_dispositivos()
+def modificar_dispositivo(email, nombre, nuevo_modelo = None, nuevo_estado = None):
     if email not in dispositivos or not dispositivos[email]:
         print("❌ El usuario no tiene dispositivos registrados.")
         return
-
-    print("📋 Dispositivos del usuario:")
-    for nombre in dispositivos[email]:
-        print(f"- {nombre}")
-    nombre = input("Ingrese el nombre del dispositivo a modificar: ").strip()
+    
     if nombre not in dispositivos[email]:
         print("❌ Dispositivo no encontrado.")
         return
-
-    modelo_nuevo = input("Ingrese nuevo modelo: ").strip()
-    estado_nuevo = input("Nuevo estado (encendido/apagado): ").strip().lower()
-
-    if modelo_nuevo:
-        dispositivos[email][nombre]["modelo"] = modelo_nuevo
-    if estado_nuevo in ["encendido", "apagado"]:
-        dispositivos[email][nombre]["estado"] = estado_nuevo
-
-    guardar_dispositivos()
+    
+    if nuevo_modelo:
+        dispositivos[email][nombre]["modelo"] = nuevo_modelo
+    if nuevo_estado in ["encendido", "apagado"]:
+        dispositivos[email][nombre]["estado_disp"] = nuevo_estado
+        
     print(f"✅ Dispositivo '{nombre}' actualizado.")
+    
